@@ -175,7 +175,12 @@ function App() {
               margin: '0 auto 32px auto',
               justifyContent: 'center'
             }}>
-              <button className='btn btn-primary btn-icon' onClick={() => setMode('image')}>
+              <button className='btn btn-primary btn-icon' onClick={() => setMode('image')} style={{
+    background: "#ececff",
+    color: "#7b7be5",
+    borderRadius: 12,
+    fontWeight: "bold"
+  }}>
                 <span role="img" aria-label="camera">📷</span> Upload Photo
               </button>
               <button className='btn btn-secondary btn-icon' onClick={() => setMode('quiz')}>
