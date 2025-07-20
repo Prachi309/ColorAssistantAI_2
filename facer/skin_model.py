@@ -3,6 +3,8 @@ import torchvision.models as models
 import torchvision.transforms as transforms
 from PIL import Image
 import torch.nn as nn
+import os
+import gc
 
 class LazySkinModel:
     _instance = None
@@ -18,6 +20,10 @@ class LazySkinModel:
     def _load_model(self):
         if not self._loaded:
             print("Loading skin model (lazy loading)...")
+            
+            # Force garbage collection before loading
+            gc.collect()
+            
             model = models.resnet18(pretrained=True)
             num_classes = 4
             in_features = model.fc.in_features
@@ -31,10 +37,9 @@ class LazySkinModel:
             self._model.fc = nn.Linear(in_features, num_classes)
             self._model.load_state_dict(state_dict)
 
+            # Use smaller image size to reduce memory
             self._transform = transforms.Compose([
-                transforms.RandomHorizontalFlip(p=0.5),
-                transforms.RandomVerticalFlip(p=0.5),
-                transforms.Resize((224, 224)),
+                transforms.Resize((160, 160)),  # Reduced from 224x224
                 transforms.ToTensor(),
                 transforms.Normalize((0.5,), (0.5,))
             ])
@@ -42,17 +47,42 @@ class LazySkinModel:
             self._model.eval()
             self._loaded = True
             print("Skin model loaded successfully!")
+            
+            # Clear original model to free memory
+            del model
+            gc.collect()
     
     def predict(self, img):
         self._load_model()
         
-        image = Image.open(img).convert('RGB')
+        # Compress image before processing
+        from PIL import Image
+        import cv2
+        import numpy as np
+        
+        # Read and compress image
+        cv_img = cv2.imread(img)
+        if cv_img is not None:
+            # Resize to smaller size
+            cv_img = cv2.resize(cv_img, (160, 160), interpolation=cv2.INTER_AREA)
+            # Convert to PIL
+            cv_img_rgb = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB)
+            image = Image.fromarray(cv_img_rgb)
+        else:
+            image = Image.open(img).convert('RGB')
+            image = image.resize((160, 160), Image.Resampling.LANCZOS)
+        
         image = self._transform(image).unsqueeze(0)
 
         with torch.no_grad():
             output = self._model(image)
         pred_index = output.argmax().item()
         print("Decided color: ", pred_index)
+        
+        # Clear tensors to free memory
+        del image, output
+        gc.collect()
+        
         return pred_index
 
 # Global lazy model instance

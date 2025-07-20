@@ -13,6 +13,43 @@ load_dotenv()
 
 api_key = os.getenv("API_KEY")
 
+# Memory optimization: Image compression and resizing
+def compress_image(image_path, max_size=800, quality=85):
+    """Compress and resize image to reduce memory usage"""
+    try:
+        # Read image
+        img = cv2.imread(image_path)
+        if img is None:
+            return image_path
+        
+        # Get current dimensions
+        height, width = img.shape[:2]
+        
+        # Resize if image is too large
+        if max(height, width) > max_size:
+            scale = max_size / max(height, width)
+            new_width = int(width * scale)
+            new_height = int(height * scale)
+            img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
+        
+        # Save compressed image
+        compressed_path = image_path.replace('.jpg', '_compressed.jpg')
+        cv2.imwrite(compressed_path, img, [cv2.IMWRITE_JPEG_QUALITY, quality])
+        
+        return compressed_path
+    except Exception as e:
+        print(f"Compression error: {e}")
+        return image_path
+
+def cleanup_temp_files(*file_paths):
+    """Clean up temporary files to free memory"""
+    for file_path in file_paths:
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+        except Exception as e:
+            print(f"Cleanup error for {file_path}: {e}")
+
 # Lazy loading for heavy dependencies
 def _lazy_import_torch():
     """Lazy import torch to avoid loading it until needed"""
@@ -88,11 +125,14 @@ def _lazy_import_np():
 
 
 def get_rgb_codes(path):
+    # Compress image first
+    compressed_path = compress_image(path, max_size=600, quality=80)
+    
     torch = _lazy_import_torch()
     facer = _lazy_import_facer()
     
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    image = facer.hwc2bchw(facer.read_hwc(path)).to(device=device)
+    image = facer.hwc2bchw(facer.read_hwc(compressed_path)).to(device=device)
     face_detector = facer.face_detector('retinaface/mobilenet', device=device)
     with torch.inference_mode():
         faces = face_detector(image)
@@ -113,11 +153,15 @@ def get_rgb_codes(path):
     lips = llip+ulip
     binary_mask = (lips >= 0.5).astype(int)
 
-    sample = cv2.imread(path)
+    sample = cv2.imread(compressed_path)
     img = cv2.cvtColor(sample, cv2.COLOR_BGR2RGB)
 
     indices = np.argwhere(binary_mask)   #binary mask location extraction
     rgb_codes = img[indices[:, 0], indices[:, 1], :] #RGB color extraction by pixels
+    
+    # Cleanup compressed file
+    cleanup_temp_files(compressed_path)
+    
     return rgb_codes
 
 def filter_lip_random(rgb_codes,randomNum=40):

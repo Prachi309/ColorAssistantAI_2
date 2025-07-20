@@ -17,10 +17,49 @@ from fastapi import Query
 from fastapi import Form
 from fastapi import Body
 import logging
+import gc
 
+# Memory monitoring
+try:
+    from memory_monitor import log_memory_usage, optimize_memory, check_memory_limit
+    MEMORY_MONITORING = True
+except ImportError:
+    MEMORY_MONITORING = False
+    def log_memory_usage(stage=""): pass
+    def optimize_memory(): pass
+    def check_memory_limit(limit_mb=500): return True
 
 app = FastAPI()
 
+# Memory optimization: Image compression
+def compress_uploaded_image(content, max_size=800, quality=85):
+    """Compress uploaded image to reduce memory usage"""
+    try:
+        # Convert bytes to numpy array
+        nparr = np.frombuffer(content, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if img is None:
+            return content
+        
+        # Get current dimensions
+        height, width = img.shape[:2]
+        
+        # Resize if image is too large
+        if max(height, width) > max_size:
+            scale = max_size / max(height, width)
+            new_width = int(width * scale)
+            new_height = int(height * scale)
+            img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
+        
+        # Encode back to bytes with compression
+        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), quality]
+        _, compressed_content = cv2.imencode('.jpg', img, encode_param)
+        
+        return compressed_content.tobytes()
+    except Exception as e:
+        print(f"Compression error: {e}")
+        return content
 
 # Get frontend URL from environment variable
 frontend_url = os.getenv("VITE_FRONTEND_URL")
@@ -41,25 +80,45 @@ async def root():
 
 @app.post("/image")
 async def image(file: UploadFile = File(None)):
-
     try:
+        log_memory_usage("at start")
+        
         if file and file.filename:
             # File upload handling
             print(f"Received file: {file.filename}")
+            
+            # Read and compress image
+            content = await file.read()
+            compressed_content = compress_uploaded_image(content, max_size=600, quality=80)
+            
             with open("saved.jpg", "wb") as fi:
-                content = await file.read()
-                fi.write(content)
+                fi.write(compressed_content)
         else:
             raise HTTPException(status_code=400, detail="No image file provided. Please upload an image file.")
       
+        # Force garbage collection before processing
+        gc.collect()
+        log_memory_usage("after compression")
        
         eye_color = f.get_eye_color("saved.jpg")
       
         f.save_skin_mask("saved.jpg")
    
+        log_memory_usage("after eye color analysis")
+        
         ans = m.get_season("temp.jpg")
+        log_memory_usage("after season analysis")
+        
+        # Cleanup files immediately
         os.remove("temp.jpg")
         os.remove("saved.jpg")
+        
+        # Force garbage collection after processing
+        gc.collect()
+        optimize_memory()
+        
+        # Check memory limit
+        check_memory_limit(500)
    
         if ans == 3:
             ans += 1
@@ -76,6 +135,10 @@ async def image(file: UploadFile = File(None)):
         })
         
     except Exception as e:
+        # Cleanup on error
+        for file_path in ["temp.jpg", "saved.jpg"]:
+            if os.path.exists(file_path):
+                os.remove(file_path)
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 
