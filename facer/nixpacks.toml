@@ -1,2 +1,12 @@
 [phases.setup]
-nixPkgs = ["python310", "libGL", "mesa", "xorg.libX11"] 
+nixPkgs = [
+  "python310",
+  "libGL",
+  "libglib",
+  "libSM",
+  "libXext",
+  "libXrender"
+]
+
+[variables]
+QT_QPA_PLATFORM = "offscreen" 
