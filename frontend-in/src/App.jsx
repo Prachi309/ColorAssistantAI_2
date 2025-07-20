@@ -226,7 +226,7 @@ function App() {
           </div>
           {/* Chat Button */}
           <button 
-            className="floating-chat-btn" 
+            className="floating-chat-bubble" 
             onClick={() => setShowStyleAssistant(true)}
             style={{
               width: '72px',
