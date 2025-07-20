@@ -31,7 +31,10 @@ class LazySkinModel:
             model.fc = nn.Linear(in_features, num_classes)
 
             # load saved state dictionary
-            state_dict = torch.load('best_model_resnet_ALL.pth', map_location=torch.device('cpu'))
+            import os
+            model_path = os.path.join(os.path.dirname(__file__), "cp/best_model_resnet_ALL.pth")
+            print("Loading model from:", model_path)
+            state_dict = torch.load(model_path, map_location=torch.device('cpu'))
 
             # create a new model with the correct architecture
             self._model = models.resnet18(pretrained=True)
