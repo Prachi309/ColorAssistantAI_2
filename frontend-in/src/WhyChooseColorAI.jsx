@@ -65,8 +65,8 @@ const WhyChooseColorAI = () => (
         <div style={{ background: "#fff", borderRadius: 20, boxShadow: "0 2px 16px #0001", padding: 16, marginBottom: 8, width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
           <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
             {/* Replace these with your real before/after images if available */}
-            <img src="/public/before.jpeg" alt="Before" style={{ borderRadius: 12, width: 160, height: 180, objectFit: "cover" }} />
-            <img src="/public/after.jpeg" alt="After" style={{ borderRadius: 12, width: 160, height: 180, objectFit: "cover" }} />
+            <img src="/before.jpeg" alt="Before" style={{ borderRadius: 12, width: 160, height: 180, objectFit: "cover" }} />
+            <img src="/after.jpeg" alt="After" style={{ borderRadius: 12, width: 160, height: 180, objectFit: "cover" }} />
           </div>
           <div style={{ color: "#555", fontStyle: "italic", fontSize: 15, marginTop: 10, textAlign: "center" }}>
             See the dramatic difference the right colors can make
