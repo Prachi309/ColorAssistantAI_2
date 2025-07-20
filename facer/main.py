@@ -18,6 +18,7 @@ from fastapi import Form
 from fastapi import Body
 import logging
 import gc
+import traceback
 
 # Memory monitoring
 try:
@@ -30,6 +31,7 @@ except ImportError:
     def check_memory_limit(limit_mb=500): return True
 
 app = FastAPI()
+logger = logging.getLogger("uvicorn.error")
 
 # Memory optimization: Image compression
 def compress_uploaded_image(content, max_size=800, quality=85):
@@ -80,67 +82,72 @@ async def root():
 
 @app.post("/image")
 async def image(file: UploadFile = File(None)):
+    # 1) Early 400 if no file
+    if not file or not file.filename:
+        raise HTTPException(status_code=400, detail="No image file provided. Please upload an image file.")
+
     try:
         log_memory_usage("at start")
-        
-        if file and file.filename:
-            # File upload handling
-            print(f"Received file: {file.filename}")
-            
-            # Read and compress image
-            content = await file.read()
-            compressed_content = compress_uploaded_image(content, max_size=600, quality=80)
-            
-            with open("saved.jpg", "wb") as fi:
-                fi.write(compressed_content)
-        else:
-            raise HTTPException(status_code=400, detail="No image file provided. Please upload an image file.")
-      
-        # Force garbage collection before processing
+        logger.info(f"🔹 Received file: {file.filename}")
+
+        # 2) Read & compress
+        content = await file.read()
+        compressed_content = compress_uploaded_image(content, max_size=600, quality=80)
+        with open("saved.jpg", "wb") as fi:
+            fi.write(compressed_content)
+
         gc.collect()
         log_memory_usage("after compression")
-       
+
+        # 3) Eye-color
         eye_color = f.get_eye_color("saved.jpg")
-      
-        f.save_skin_mask("saved.jpg")
-   
         log_memory_usage("after eye color analysis")
-        
-        ans = m.get_season("temp.jpg")
+
+        # 4) Skin mask → temp.jpg
+        f.save_skin_mask("saved.jpg")
+        if not os.path.exists("temp.jpg"):
+            raise HTTPException(status_code=500, detail="Skin-mask step failed to produce temp.jpg")
+        log_memory_usage("after skin mask")
+
+        # 5) Season classification
+        try:
+            ans = m.get_season("temp.jpg")
+        except Exception:
+            logger.exception("❌ Error during skin-model inference")
+            raise HTTPException(status_code=500, detail="Skin model inference failed.")
         log_memory_usage("after season analysis")
-        
-        # Cleanup files immediately
-        os.remove("temp.jpg")
-        os.remove("saved.jpg")
-        
-        # Force garbage collection after processing
+
+        # 6) Cleanup
+        for fn in ("temp.jpg", "saved.jpg"):
+            try: os.remove(fn)
+            except OSError: pass
+
         gc.collect()
         optimize_memory()
-        
-        # Check memory limit
         check_memory_limit(500)
-   
+
+        # 7) Normalize & return
         if ans == 3:
             ans += 1
         elif ans == 0:
             ans = 3
-
-        # Returning result directly 
         season_names = {1: "Spring", 2: "Summer", 3: "Autumn", 4: "Winter"}
-        return JSONResponse(content={
+
+        return JSONResponse({
             "message": "complete",
             "result": ans,
             "season": season_names.get(ans, "Unknown"),
-            "eye_color": eye_color  
+            "eye_color": eye_color
         })
-        
-    except Exception as e:
-        # Cleanup on error
-        for file_path in ["temp.jpg", "saved.jpg"]:
-            if os.path.exists(file_path):
-                os.remove(file_path)
-        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
+    except HTTPException:
+        # Let FastAPI handle our intended 4xx/5xx
+        raise
+
+    except Exception:
+        # Anything else: full traceback in logs, but generic to client
+        logger.exception("💥 Uncaught error in /image")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.post("/lip")
 async def lip(file: UploadFile = File(None)):
