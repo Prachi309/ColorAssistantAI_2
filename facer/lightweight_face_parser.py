@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 from typing import Dict, Any
 import torch
+import gc
 
 class LightweightFaceParser:
     """Lightweight face parser that uses simple color-based segmentation instead of heavy ML models"""
@@ -48,8 +49,12 @@ class LightweightFaceParser:
                 clean_mask = np.zeros_like(lip_mask)
                 cv2.fillPoly(clean_mask, [largest_contour], 255)
                 
+                # Clean up intermediate variables
+                del hsv, mask1, mask2, lip_mask, kernel, contours, largest_contour
                 return clean_mask
             
+            # Clean up intermediate variables
+            del hsv, mask1, mask2, lip_mask, kernel, contours
             return lip_mask
             
         except Exception as e:
@@ -88,6 +93,9 @@ class LightweightFaceParser:
                 'logits': seg_logits,
                 'label_names': ['background', 'lips']
             }
+            
+            # Clean up intermediate tensors
+            del mask_tensor
             
             return data
             

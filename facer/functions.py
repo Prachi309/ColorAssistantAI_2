@@ -131,53 +131,68 @@ def get_rgb_codes(path):
     torch = _lazy_import_torch()
     cv2 = _lazy_import_cv2()
     np = _lazy_import_np()
+    import gc
     
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
     # Use lightweight face parser instead of heavy FaRL model
     from lightweight_face_parser import LightweightFaceParser
     
-    # Read and preprocess image
-    sample = cv2.imread(compressed_path)
-    img = cv2.cvtColor(sample, cv2.COLOR_BGR2RGB)
-    
-    # Convert to tensor format
-    image_tensor = torch.from_numpy(img).float().permute(2, 0, 1).unsqueeze(0) / 255.0
-    image_tensor = image_tensor.to(device=device)
-    
-    # Create lightweight face parser
-    face_parser = LightweightFaceParser(device=device)
-    
-    # Create dummy data structure
-    data = {'image_ids': torch.tensor([0])}
-    
-    # Parse face using lightweight method
-    with torch.inference_mode():
-        result = face_parser.forward(image_tensor, data)
-    
-    # Extract lip mask
-    seg_logits = result['seg']['logits']
-    seg_probs = seg_logits.softmax(dim=1)  # nfaces x nclasses x h x w
-    seg_probs = seg_probs.cpu()
-    
-    # Get lip probability (class 1)
-    lip_prob = seg_probs[0, 1]  # Lip class
-    binary_mask = (lip_prob >= 0.3).numpy().astype(int)  # Lower threshold for color-based method
-    
-    # Extract RGB codes from lip region
-    indices = np.argwhere(binary_mask)
-    if len(indices) > 0:
-        rgb_codes = img[indices[:, 0], indices[:, 1], :]
-    else:
-        # Fallback: use lower third of image if no lips detected
-        h, w = img.shape[:2]
-        lower_region = img[int(h*0.6):, :, :]
-        rgb_codes = lower_region.reshape(-1, 3)
-    
-    # Cleanup compressed file
-    cleanup_temp_files(compressed_path)
-    
-    return rgb_codes
+    try:
+        # Read and preprocess image
+        sample = cv2.imread(compressed_path)
+        img = cv2.cvtColor(sample, cv2.COLOR_BGR2RGB)
+        
+        # Convert to tensor format
+        image_tensor = torch.from_numpy(img).float().permute(2, 0, 1).unsqueeze(0) / 255.0
+        image_tensor = image_tensor.to(device=device)
+        
+        # Create lightweight face parser
+        face_parser = LightweightFaceParser(device=device)
+        
+        # Create dummy data structure
+        data = {'image_ids': torch.tensor([0])}
+        
+        # Parse face using lightweight method
+        with torch.inference_mode():
+            result = face_parser.forward(image_tensor, data)
+        
+        # Extract lip mask
+        seg_logits = result['seg']['logits']
+        seg_probs = seg_logits.softmax(dim=1)  # nfaces x nclasses x h x w
+        seg_probs = seg_probs.cpu()
+        
+        # Get lip probability (class 1)
+        lip_prob = seg_probs[0, 1]  # Lip class
+        binary_mask = (lip_prob >= 0.3).numpy().astype(int)  # Lower threshold for color-based method
+        
+        # Extract RGB codes from lip region
+        indices = np.argwhere(binary_mask)
+        if len(indices) > 0:
+            rgb_codes = img[indices[:, 0], indices[:, 1], :]
+        else:
+            # Fallback: use lower third of image if no lips detected
+            h, w = img.shape[:2]
+            lower_region = img[int(h*0.6):, :, :]
+            rgb_codes = lower_region.reshape(-1, 3)
+        
+        # Clean up tensors to prevent memory leaks
+        del image_tensor, seg_logits, seg_probs, lip_prob, binary_mask, indices
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        
+        # Force garbage collection
+        gc.collect()
+        
+        return rgb_codes
+        
+    except Exception as e:
+        print(f"Error in get_rgb_codes: {e}")
+        # Fallback: return empty array
+        return np.array([])
+    finally:
+        # Cleanup compressed file
+        cleanup_temp_files(compressed_path)
 
 def filter_lip_random(rgb_codes,randomNum=40):
     blue_condition = (rgb_codes[:, 2] <= 227)
