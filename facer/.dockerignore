@@ -80,7 +80,7 @@ temp/
 # Documentation
 docs/
 *.rst
-*.txt
+
 
 # Test files
 tests/
