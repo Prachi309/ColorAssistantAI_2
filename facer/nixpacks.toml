@@ -2,8 +2,8 @@
 nixPkgs = [
   "python310",
   "libGL",
-  "libXext",
-  "libXrender"
+  "xorg.libXext",
+  "xorg.libXrender"
 ]
 
 [variables]
