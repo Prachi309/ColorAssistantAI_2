@@ -45,6 +45,7 @@ debug_*.py
 .gitignore
 DEPLOYMENT.md
 README.md
+RENDER_DEPLOYMENT.md
 
 # Large files
 *.pth
@@ -54,6 +55,8 @@ README.md
 *.hdf5
 *.model
 *.weights
+*.onnx
+*.tflite
 
 # OS files
 .DS_Store
@@ -72,4 +75,25 @@ logs/
 # Temporary files
 tmp/
 temp/
-*.tmp 
+*.tmp
+
+# Documentation
+docs/
+*.rst
+*.txt
+
+# Test files
+tests/
+test/
+*_test.py
+test_*.py
+
+# Development files
+.dev/
+dev/
+development/
+
+# Backup files
+*.bak
+*.backup
+*.old 
