@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: colortheoryai-frontend
+    env: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_OPENROUTER_API_KEY
+        value: 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
+      - key: SERPAPI_KEY
+        value: e56885579070a5810d92f537d27f238a837b78fee22fd37e0d8c38005271164d
+      - key: VITE_BACKEND_URL
+        value: https://colortheoryai-backend.onrender.com
+    autoDeploy: true 

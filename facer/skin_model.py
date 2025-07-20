@@ -4,35 +4,62 @@ import torchvision.transforms as transforms
 from PIL import Image
 import torch.nn as nn
 
+class LazySkinModel:
+    _instance = None
+    _model = None
+    _transform = None
+    _loaded = False
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(LazySkinModel, cls).__new__(cls)
+        return cls._instance
+    
+    def _load_model(self):
+        if not self._loaded:
+            print("Loading skin model (lazy loading)...")
+            model = models.resnet18(pretrained=True)
+            num_classes = 4
+            in_features = model.fc.in_features
+            model.fc = nn.Linear(in_features, num_classes)
+
+            # load saved state dictionary
+            state_dict = torch.load('best_model_resnet_ALL.pth', map_location=torch.device('cpu'))
+
+            # create a new model with the correct architecture
+            self._model = models.resnet18(pretrained=True)
+            self._model.fc = nn.Linear(in_features, num_classes)
+            self._model.load_state_dict(state_dict)
+
+            self._transform = transforms.Compose([
+                transforms.RandomHorizontalFlip(p=0.5),
+                transforms.RandomVerticalFlip(p=0.5),
+                transforms.Resize((224, 224)),
+                transforms.ToTensor(),
+                transforms.Normalize((0.5,), (0.5,))
+            ])
+            
+            self._model.eval()
+            self._loaded = True
+            print("Skin model loaded successfully!")
+    
+    def predict(self, img):
+        self._load_model()
+        
+        image = Image.open(img).convert('RGB')
+        image = self._transform(image).unsqueeze(0)
+
+        with torch.no_grad():
+            output = self._model(image)
+        pred_index = output.argmax().item()
+        print("Decided color: ", pred_index)
+        return pred_index
+
+# Global lazy model instance
+_lazy_model = None
+
 def get_season(img):
-    model = models.resnet18(pretrained=True)
-    num_classes = 4
-    in_features = model.fc.in_features
-    model.fc = nn.Linear(in_features, num_classes)
-
-    # load saved state dictionary
-    state_dict = torch.load('best_model_resnet_ALL.pth', map_location=torch.device('cpu'))
-
-    # create a new model with the correct architecture
-    new_model = models.resnet18(pretrained=True)
-    new_model.fc = nn.Linear(in_features, num_classes)
-    new_model.load_state_dict(state_dict)
-
-    transform = transforms.Compose([
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomVerticalFlip(p=0.5),
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize((0.5,), (0.5,))
-    ])
-
-    image = Image.open(img).convert('RGB')
-    image = transform(image).unsqueeze(0)
-
-    new_model.eval()
-
-    with torch.no_grad():
-        output = new_model(image)
-    pred_index = output.argmax().item()
-    print("Decided color: ",pred_index)
-    return pred_index
+    global _lazy_model
+    if _lazy_model is None:
+        _lazy_model = LazySkinModel()
+    return _lazy_model.predict(img)

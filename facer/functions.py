@@ -6,12 +6,6 @@ import random
 from collections import Counter
 import cv2
 import numpy as np
-import torch
-import torchvision.transforms as transforms
-from PIL import Image
-from skimage.filters import gaussian
-import facer
-import mediapipe as mp
 from dotenv import load_dotenv
 import os
 
@@ -19,8 +13,84 @@ load_dotenv()
 
 api_key = os.getenv("API_KEY")
 
+# Lazy loading for heavy dependencies
+def _lazy_import_torch():
+    """Lazy import torch to avoid loading it until needed"""
+    if not hasattr(_lazy_import_torch, '_torch'):
+        print("Loading torch (lazy loading)...")
+        import torch
+        _lazy_import_torch._torch = torch
+    return _lazy_import_torch._torch
+
+def _lazy_import_facer():
+    """Lazy import facer to avoid loading it until needed"""
+    if not hasattr(_lazy_import_facer, '_facer'):
+        print("Loading facer (lazy loading)...")
+        import facer
+        _lazy_import_facer._facer = facer
+    return _lazy_import_facer._facer
+
+def _lazy_import_mediapipe():
+    """Lazy import mediapipe to avoid loading it until needed"""
+    if not hasattr(_lazy_import_mediapipe, '_mp'):
+        print("Loading mediapipe (lazy loading)...")
+        import mediapipe as mp
+        _lazy_import_mediapipe._mp = mp
+    return _lazy_import_mediapipe._mp
+
+def _lazy_import_torchvision():
+    """Lazy import torchvision to avoid loading it until needed"""
+    if not hasattr(_lazy_import_torchvision, '_torchvision'):
+        print("Loading torchvision (lazy loading)...")
+        import torchvision.transforms as transforms
+        _lazy_import_torchvision._torchvision = transforms
+    return _lazy_import_torchvision._torchvision
+
+def _lazy_import_pil():
+    """Lazy import PIL to avoid loading it until needed"""
+    if not hasattr(_lazy_import_pil, '_pil'):
+        print("Loading PIL (lazy loading)...")
+        from PIL import Image
+        _lazy_import_pil._pil = Image
+    return _lazy_import_pil._pil
+
+def _lazy_import_skimage():
+    """Lazy import skimage to avoid loading it until needed"""
+    if not hasattr(_lazy_import_skimage, '_skimage'):
+        print("Loading skimage (lazy loading)...")
+        from skimage.filters import gaussian
+        _lazy_import_skimage._skimage = gaussian
+    return _lazy_import_skimage._skimage
+
+def _lazy_import_scipy():
+    """Lazy import scipy to avoid loading it until needed"""
+    if not hasattr(_lazy_import_scipy, '_scipy'):
+        print("Loading scipy (lazy loading)...")
+        from scipy import stats
+        _lazy_import_scipy._scipy = stats
+    return _lazy_import_scipy._scipy
+
+def _lazy_import_cv2():
+    """Lazy import cv2 to avoid loading it until needed"""
+    if not hasattr(_lazy_import_cv2, '_cv2'):
+        print("Loading cv2 (lazy loading)...")
+        import cv2
+        _lazy_import_cv2._cv2 = cv2
+    return _lazy_import_cv2._cv2
+
+def _lazy_import_np():
+    """Lazy import numpy to avoid loading it until needed"""
+    if not hasattr(_lazy_import_np, '_np'):
+        print("Loading numpy (lazy loading)...")
+        import numpy as np
+        _lazy_import_np._np = np
+    return _lazy_import_np._np
+
 
 def get_rgb_codes(path):
+    torch = _lazy_import_torch()
+    facer = _lazy_import_facer()
+    
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     image = facer.hwc2bchw(facer.read_hwc(path)).to(device=device)
     face_detector = facer.face_detector('retinaface/mobilenet', device=device)
@@ -94,6 +164,9 @@ def calc_dis(rgb_codes):
 
 
 def save_skin_mask(img_path):
+    torch = _lazy_import_torch()
+    facer = _lazy_import_facer()
+    
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     image = facer.hwc2bchw(facer.read_hwc(img_path)).to(device=device)  
     face_detector = facer.face_detector('retinaface/mobilenet', device=device)
@@ -127,10 +200,10 @@ def save_skin_mask(img_path):
 
 
 def get_eye_color(image_path):
-    import mediapipe as mp
-    import cv2
-    import numpy as np
-    from scipy import stats
+    mp = _lazy_import_mediapipe()
+    cv2 = _lazy_import_cv2()
+    np = _lazy_import_np()
+    stats = _lazy_import_scipy()
 
     mp_face_mesh = mp.solutions.face_mesh
     face_mesh = mp_face_mesh.FaceMesh(static_image_mode=True, max_num_faces=1, refine_landmarks=True)
@@ -227,6 +300,9 @@ def analyze_lip_color(image_path):
 
 
 def analyze_skin_color(image_path):
+    torch = _lazy_import_torch()
+    facer = _lazy_import_facer()
+    
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     image = facer.hwc2bchw(facer.read_hwc(image_path)).to(device=device)
     face_detector = facer.face_detector('retinaface/mobilenet', device=device)
@@ -262,6 +338,9 @@ def analyze_skin_color(image_path):
 
 
 def analyze_hair_color(image_path):
+    torch = _lazy_import_torch()
+    facer = _lazy_import_facer()
+    
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     image = facer.hwc2bchw(facer.read_hwc(image_path)).to(device=device)
     face_detector = facer.face_detector('retinaface/mobilenet', device=device)
