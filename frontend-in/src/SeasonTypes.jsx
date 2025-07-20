@@ -27,6 +27,13 @@ const seasonData = [
   }
 ];
 
+const seasonEmojis = {
+  Spring: "🌼",
+  Summer: "🌞",
+  Autumn: "🍂",
+  Winter: "🌨️"
+};
+
 const SeasonTypes = () => (
   <div style={{
     width: "100%",
@@ -86,7 +93,7 @@ const SeasonTypes = () => (
               color: "#fff",
               fontWeight: "bold"
             }}>
-              {season.name.charAt(0)}
+              {seasonEmojis[season.name]}
             </div>
             
             <h3 style={{ 
