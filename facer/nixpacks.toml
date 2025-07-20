@@ -2,8 +2,6 @@
 nixPkgs = [
   "python310",
   "libGL",
-  "libglib",
-  "libSM",
   "libXext",
   "libXrender"
 ]
