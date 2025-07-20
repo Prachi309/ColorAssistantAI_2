@@ -30,4 +30,4 @@ services:
         value: e56885579070a5810d92f537d27f238a837b78fee22fd37e0d8c38005271164d
       - key: VITE_BACKEND_URL
         value: https://colortheoryai-backend.onrender.com
-    autoDeploy: true 
+    autoDeploy: true
