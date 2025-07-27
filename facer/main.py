@@ -113,7 +113,7 @@ async def image(file: UploadFile = File(None)):
         try:
             ans = m.get_season("temp.jpg")
         except Exception:
-            logger.exception("❌ Error during skin-model inference")
+            logger.exception(" Error during skin-model inference")
             raise HTTPException(status_code=500, detail="Skin model inference failed.")
         log_memory_usage("after season analysis")
 
@@ -146,7 +146,7 @@ async def image(file: UploadFile = File(None)):
 
     except Exception:
         # Anything else: full traceback in logs, but generic to client
-        logger.exception("💥 Uncaught error in /image")
+        logger.exception(" Uncaught error in /image")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.post("/lip")

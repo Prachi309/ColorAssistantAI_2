@@ -8,6 +8,8 @@ import WhyChooseColorAI from './WhyChooseColorAI';
 import ColorQuiz from './ColorQuiz';
 import UndertoneInfo from './UndertoneInfo';
 import StyleAssistant from "./StyleAssistant";
+import FashionTimelineBot from "./FashionTimelineBot";
+import DressForFestival from "./DressForFestival";
 
 const API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 
@@ -40,6 +42,8 @@ function App() {
   const [imagePrompt, setImagePrompt] = useState('');
   const [showStyleAssistant, setShowStyleAssistant] = useState(false);
   const [currentFact, setCurrentFact] = useState('');
+  const [showFashionTimeline, setShowFashionTimeline] = useState(false);
+  const [showDressForFestival, setShowDressForFestival] = useState(false);
 
   const fashionFacts = [
     "Did you know that color analysis costs 40,000 rupees but we do it for free if you wait for just 2 minutes",
@@ -201,6 +205,12 @@ function App() {
               <button className='btn btn-outlined btn-icon' onClick={() => setShowUndertoneModal(true)}>
                 <span role="img" aria-label="palette">🎨</span> Know About Your Undertone
               </button>
+              <button className='btn btn-outlined btn-icon' onClick={() => setShowFashionTimeline(true)}>
+                <span role="img" aria-label="timeline">📅</span> Get Your Fashion Timeline
+              </button>
+              <button className='btn btn-outlined btn-icon' onClick={() => setShowDressForFestival(true)}>
+                <span role="img" aria-label="festival">🎉</span> Dress for Festival
+              </button>
             </div>
           </div>
           <SeasonTypes />
@@ -287,6 +297,12 @@ function App() {
       )}
       {showStyleAssistant && (
         <StyleAssistant onClose={() => setShowStyleAssistant(false)} />
+      )}
+      {showFashionTimeline && (
+        <FashionTimelineBot onClose={() => setShowFashionTimeline(false)} />
+      )}
+      {showDressForFestival && (
+        <DressForFestival onClose={() => setShowDressForFestival(false)} />
       )}
       {/* Upload Image Modal */}
       {mode === 'image' && (

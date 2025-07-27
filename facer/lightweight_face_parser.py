@@ -9,7 +9,7 @@ class LightweightFaceParser:
     
     def __init__(self, device=None):
         self.device = device
-        print("✅ Using lightweight face parser (no model download required)")
+        print(" Using lightweight face parser (no model download required)")
     
     def parse_lips(self, image):
         """Extract lip region using color-based segmentation"""

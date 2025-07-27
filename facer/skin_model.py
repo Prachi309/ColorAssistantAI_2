@@ -32,7 +32,7 @@ class LazySkinModel:
 
             # load saved state dictionary
             import os
-            model_path = os.path.join(os.path.dirname(__file__), "cp/best_model_resnet_ALL.pth")
+            model_path = os.path.join(os.path.dirname(__file__), "/Users/prachisingh/Desktop/meesho resources/ColorTheoryAssistant-AI/facer/cp/best_model_resnet_ALL.pth")
             print("Loading model from:", model_path)
             state_dict = torch.load(model_path, map_location=torch.device('cpu'))
 
