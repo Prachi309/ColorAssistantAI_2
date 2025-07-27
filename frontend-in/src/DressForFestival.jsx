@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import FestiveOutfitIdeas from "./FestiveOutfitIdeas";
+import ClothingImageResults from "./ClothingImageResults";
 
 const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 
@@ -72,6 +74,38 @@ Focus on Indian festivals and cultural appropriateness.
 `;
 };
 
+// Helper to extract day-wise outfit suggestions from the AI response
+function extractDayWiseOutfits(aiText) {
+  // Match headings like 'Day 1: Dhanteras', 'Day 2: Choti Diwali', etc.
+  const dayRegex = /(?:Day\s*\d+:?\s*[^\n]*)|(?:Main Diwali Day \(Big Celebrations\))/gi;
+  const lines = aiText.split(/\n+/);
+  let days = [];
+  let currentDay = null;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (dayRegex.test(line)) {
+      if (currentDay) days.push(currentDay);
+      currentDay = { day: line.replace(/\*|#/g, '').trim(), outfit: '' };
+      // Reset regex lastIndex for global regex
+      dayRegex.lastIndex = 0;
+    } else if (currentDay && (line.includes('Outfit:') || line.includes('outfit:'))) {
+      currentDay.outfit = line.replace(/\*|#/g, '').replace(/Outfit:/i, '').trim();
+    }
+  }
+  if (currentDay) days.push(currentDay);
+  // Filter out days without outfit
+  return days.filter(d => d.outfit);
+}
+
+// Helper to fetch images for an outfit (returns array of image objects)
+async function fetchOutfitImages(query) {
+  const res = await fetch(
+    `${import.meta.env.VITE_BACKEND_URL}/api/serpapi-proxy?q=${encodeURIComponent(query)}`
+  );
+  const data = await res.json();
+  return (data.images_results || []).slice(0, 5).map(img => ({ url: img.thumbnail, title: img.title || "" }));
+}
+
 const DressForFestival = ({ onClose }) => {
   const [chat, setChat] = useState([
     { from: "bot", text: steps[0].bot }
@@ -81,20 +115,19 @@ const DressForFestival = ({ onClose }) => {
   const [typing, setTyping] = useState(false);
   const [finalReply, setFinalReply] = useState(null);
   const [textInput, setTextInput] = useState("");
+  const [occasions, setOccasions] = useState([]);
+  const [loadingImages, setLoadingImages] = useState(false);
 
   const handleOption = async (option) => {
     setChat(prev => [...prev, { from: "user", text: option.label || option }]);
     setTyping(true);
     await sleep(700);
     setTyping(false);
-    
     setAnswers(prev => ({ ...prev, [steps[step].key]: option.value || option }));
-    
     if (step < steps.length - 1) {
       setChat(prev => [...prev, { from: "bot", text: steps[step + 1].bot }]);
       setStep(step + 1);
     } else {
-      // This is the last step, so generate the festival guide
       setTyping(true);
       setTimeout(async () => {
         setTyping(false);
@@ -115,9 +148,24 @@ const DressForFestival = ({ onClose }) => {
           const suggestion = data.choices?.[0]?.message?.content || "No festival guide received.";
           setFinalReply(suggestion);
           setChat(prev => [...prev, { from: "bot", text: suggestion }]);
+          const days = extractDayWiseOutfits(suggestion);
+          // Fetch images for each day
+          setLoadingImages(true);
+          const occs = await Promise.all(days.map(async d => {
+            const images = await fetchOutfitImages(d.outfit);
+            return {
+              day: d.day,
+              title: d.outfit,
+              images
+            };
+          }));
+          setOccasions(occs);
+          setLoadingImages(false);
         } catch {
           setFinalReply("Sorry, something went wrong. Please try again later.");
           setChat(prev => [...prev, { from: "bot", text: "Sorry, something went wrong. Please try again later." }]);
+          setOccasions([]);
+          setLoadingImages(false);
         }
       }, 1200);
     }
@@ -125,20 +173,16 @@ const DressForFestival = ({ onClose }) => {
 
   const handleTextSubmit = async () => {
     if (!textInput.trim()) return;
-    
     setChat(prev => [...prev, { from: "user", text: textInput }]);
     setTyping(true);
     await sleep(700);
     setTyping(false);
-    
     setAnswers(prev => ({ ...prev, [steps[step].key]: textInput }));
     setTextInput("");
-    
     if (step < steps.length - 1) {
       setChat(prev => [...prev, { from: "bot", text: steps[step + 1].bot }]);
       setStep(step + 1);
     } else {
-      // This is the last step, so generate the festival guide
       setTyping(true);
       setTimeout(async () => {
         setTyping(false);
@@ -159,9 +203,24 @@ const DressForFestival = ({ onClose }) => {
           const suggestion = data.choices?.[0]?.message?.content || "No festival guide received.";
           setFinalReply(suggestion);
           setChat(prev => [...prev, { from: "bot", text: suggestion }]);
+          const days = extractDayWiseOutfits(suggestion);
+          // Fetch images for each day
+          setLoadingImages(true);
+          const occs = await Promise.all(days.map(async d => {
+            const images = await fetchOutfitImages(d.outfit);
+            return {
+              day: d.day,
+              title: d.outfit,
+              images
+            };
+          }));
+          setOccasions(occs);
+          setLoadingImages(false);
         } catch {
           setFinalReply("Sorry, something went wrong. Please try again later.");
           setChat(prev => [...prev, { from: "bot", text: "Sorry, something went wrong. Please try again later." }]);
+          setOccasions([]);
+          setLoadingImages(false);
         }
       }, 1200);
     }
@@ -178,7 +237,7 @@ const DressForFestival = ({ onClose }) => {
         {/* Header */}
         <div style={{ background: "linear-gradient(90deg,#a084ee,#7C83F7)", borderTopLeftRadius: 18, borderTopRightRadius: 18, padding: "18px 24px 10px 24px", color: "#fff" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <span style={{ background: "#fff", color: "#a084ee", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 700 }}>��</span>
+            <span style={{ background: "#fff", color: "#a084ee", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 700 }}></span>
             <div>
               <div style={{ fontWeight: 700, fontSize: 20 }}>Festival Dress Bot</div>
               <div style={{ fontSize: 13, opacity: 0.9 }}>Get Your Perfect Festival Outfit Guide</div>
@@ -186,7 +245,6 @@ const DressForFestival = ({ onClose }) => {
             <button onClick={onClose} style={{ marginLeft: "auto", background: "none", border: "none", color: "#fff", fontSize: 26, cursor: "pointer" }}>&times;</button>
           </div>
         </div>
-        
         {/* Chat area */}
         <div style={{
           width: "100%",
@@ -214,18 +272,20 @@ const DressForFestival = ({ onClose }) => {
             }}
           >
             {chat.map((msg, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: msg.from === "user" ? "flex-end" : "flex-start", marginBottom: 12 }}>
-                <div style={{
-                  background: msg.from === "user" ? "#a084ee" : "#fff",
-                  color: msg.from === "user" ? "#fff" : "#333",
-                  borderRadius: 14,
-                  padding: "10px 16px",
-                  maxWidth: 540,
-                  fontSize: 15,
-                  boxShadow: msg.from === "user" ? "0 2px 8px #a084ee33" : "0 2px 8px #eee",
-                  textAlign: "left"
-                }}>{msg.text}</div>
-              </div>
+              msg.from === "user" && (
+                <div key={i} style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+                  <div style={{
+                    background: "#a084ee",
+                    color: "#fff",
+                    borderRadius: 14,
+                    padding: "10px 16px",
+                    maxWidth: 540,
+                    fontSize: 15,
+                    boxShadow: "0 2px 8px #a084ee33",
+                    textAlign: "left"
+                  }}>{msg.text}</div>
+                </div>
+              )
             ))}
             {typing && (
               <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 12 }}>
@@ -234,8 +294,18 @@ const DressForFestival = ({ onClose }) => {
                 </div>
               </div>
             )}
+            {/* Show FestiveOutfitIdeas after finalReply and images loaded */}
+            {finalReply && !loadingImages && occasions.length > 0 && (
+              <div style={{ marginTop: 24 }}>
+                <FestiveOutfitIdeas occasions={occasions} />
+              </div>
+            )}
+            {loadingImages && (
+              <div style={{ marginTop: 32, textAlign: "center", color: "#a084ee", fontWeight: 600 }}>
+                Loading outfit images...
+              </div>
+            )}
           </div>
-          
           {/* Input area */}
           {!finalReply && (
             <div style={{
@@ -279,7 +349,6 @@ const DressForFestival = ({ onClose }) => {
                   ))}
                 </div>
               )}
-              
               {/* Text input for festival name and location */}
               {currentStep.type === "text" && (
                 <div style={{ display: "flex", gap: 8 }}>
