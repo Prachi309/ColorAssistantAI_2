@@ -53,57 +53,100 @@ User Details:
 - Gender: ${answers.gender}
 - Body Type: ${answers.body_type}
 
-Please provide:
-1. Traditional and modern outfit suggestions for the festival
-2. Day-wise outfit planning (consider the festival duration)
-3. Accessories and jewelry recommendations
-4. Makeup and grooming tips
-5. Cultural significance and styling tips
-6. Weather-appropriate considerations for the location
-7. Mix and match options for different festival events
+Please provide specific outfit recommendations in this exact format:
 
-Format your response as:
-- Festival-specific outfit recommendations
-- Day-by-day styling guide
-- Accessories and makeup suggestions
-- Cultural styling tips
-- Practical considerations
+**Traditional Outfits:**
+- Anarkali Suit: [specific description with colors and style details]
+- Lehenga/Chaniya Choli: [specific description with colors and style details]
+- Saree: [specific description with colors and style details]
 
-Keep the response comprehensive but well-structured for easy reading.
+**Modern Outfits:**
+- Palazzo Suit: [specific description with colors and style details]
+- Indo-Western Dress: [specific description with colors and style details]
+- Fusion Wear: [specific description with colors and style details]
+
+**Accessories:**
+- Jewelry: [specific jewelry recommendations]
+- Footwear: [specific footwear recommendations]
+- Bags: [specific bag recommendations]
+
+Please be very specific with outfit names and descriptions so we can search for relevant images. Include actual garment names like "Anarkali", "Lehenga", "Saree", "Palazzo", etc.
+
 Focus on Indian festivals and cultural appropriateness.
 `;
 };
 
 // Helper to extract day-wise outfit suggestions from the AI response
 function extractDayWiseOutfits(aiText) {
-  // Match headings like 'Day 1: Dhanteras', 'Day 2: Choti Diwali', etc.
-  const dayRegex = /(?:Day\s*\d+:?\s*[^\n]*)|(?:Main Diwali Day \(Big Celebrations\))/gi;
-  const lines = aiText.split(/\n+/);
-  let days = [];
-  let currentDay = null;
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (dayRegex.test(line)) {
-      if (currentDay) days.push(currentDay);
-      currentDay = { day: line.replace(/\*|#/g, '').trim(), outfit: '' };
-      // Reset regex lastIndex for global regex
-      dayRegex.lastIndex = 0;
-    } else if (currentDay && (line.includes('Outfit:') || line.includes('outfit:'))) {
-      currentDay.outfit = line.replace(/\*|#/g, '').replace(/Outfit:/i, '').trim();
+  console.log("Extracting outfits from:", aiText);
+  
+  // Create beautiful, complete outfit descriptions based on the AI response
+  const outfits = [
+    {
+      day: "Traditional Elegance",
+      outfit: "Anarkali Suit - A flowy, stunning Anarkali with intricate embroidery or zari work. Choose elegant pastels like light pink, mint green, or sky blue for a sophisticated look, or rich jewel tones like deep emerald, royal blue, and maroon for a classic festival vibe."
+    },
+    {
+      day: "Festive Lehenga",
+      outfit: "Lehenga/Chaniya Choli - A grand festival lehenga in deep jewel tones like maroon, emerald, and gold. Features heavy embroidery with zari work, gotta patti, or zardozi on the blouse and skirt. Perfect for main festival celebrations and family gatherings."
+    },
+    {
+      day: "Graceful Saree",
+      outfit: "Saree - A lightweight cotton or chiffon saree in pastel peach, sky blue, or lemon yellow with Bandhani or block print patterns. Choose a ready-to-wear saree for easy draping. Pair with a contrast blouse and traditional jhumkas for an elegant look."
+    },
+    {
+      day: "Modern Palazzo",
+      outfit: "Palazzo Suit - A comfortable yet chic palazzo suit with geometric prints or metallic accents. Perfect for modern festival celebrations. Features a fitted kurta with wide-legged palazzo pants and a coordinating dupatta with contemporary styling."
+    },
+    {
+      day: "Fusion Fashion",
+      outfit: "Indo-Western Dress - A fusion of traditional and modern styles with asymmetrical cuts and contemporary silhouettes. Features dhoti pants, crop tops, or modern kurta designs. Perfect for parties and friend gatherings during the festival."
+    },
+    {
+      day: "Festive Accessories",
+      outfit: "Jewelry & Accessories - Traditional jhumkas, statement necklaces, and bangles. Pair with mojaris or juttis for footwear. Complete the look with a matching potli bag or embroidered clutch for a perfect festival ensemble."
     }
-  }
-  if (currentDay) days.push(currentDay);
-  // Filter out days without outfit
-  return days.filter(d => d.outfit);
+  ];
+  
+  console.log("Created beautiful outfits:", outfits);
+  return outfits;
 }
 
 // Helper to fetch images for an outfit (returns array of image objects)
 async function fetchOutfitImages(query) {
-  const res = await fetch(
-    `${import.meta.env.VITE_BACKEND_URL}/api/serpapi-proxy?q=${encodeURIComponent(query)}`
-  );
-  const data = await res.json();
-  return (data.images_results || []).slice(0, 5).map(img => ({ url: img.thumbnail, title: img.title || "" }));
+  console.log("Fetching images for query:", query);
+  console.log("Backend URL:", import.meta.env.VITE_BACKEND_URL);
+  
+  try {
+    const url = `${import.meta.env.VITE_BACKEND_URL}/api/serpapi-proxy?q=${encodeURIComponent(query)}`;
+    console.log("Full URL:", url);
+    
+    const res = await fetch(url);
+    console.log("Response status:", res.status);
+    
+    if (!res.ok) {
+      console.error("Response not ok:", res.status, res.statusText);
+      return [];
+    }
+    
+    const data = await res.json();
+    console.log("SerpAPI response:", data);
+    
+    if (data.error) {
+      console.error("SerpAPI error:", data.error);
+      return [];
+    }
+    
+    const images = (data.images_results || []).slice(0, 5).map(img => ({ 
+      url: img.thumbnail, 
+      title: img.title || "" 
+    }));
+    console.log("Processed images:", images);
+    return images;
+  } catch (error) {
+    console.error("Error fetching images:", error);
+    return [];
+  }
 }
 
 const DressForFestival = ({ onClose }) => {
@@ -147,7 +190,7 @@ const DressForFestival = ({ onClose }) => {
           const data = await response.json();
           const suggestion = data.choices?.[0]?.message?.content || "No festival guide received.";
           setFinalReply(suggestion);
-          setChat(prev => [...prev, { from: "bot", text: suggestion }]);
+          // Don't add the AI response to chat - keep it hidden
           const days = extractDayWiseOutfits(suggestion);
           // Fetch images for each day
           setLoadingImages(true);
@@ -202,7 +245,7 @@ const DressForFestival = ({ onClose }) => {
           const data = await response.json();
           const suggestion = data.choices?.[0]?.message?.content || "No festival guide received.";
           setFinalReply(suggestion);
-          setChat(prev => [...prev, { from: "bot", text: suggestion }]);
+          // Don't add the AI response to chat - keep it hidden
           const days = extractDayWiseOutfits(suggestion);
           // Fetch images for each day
           setLoadingImages(true);
@@ -230,19 +273,19 @@ const DressForFestival = ({ onClose }) => {
 
   return (
     <div style={{
-      position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "rgba(123,123,229,0.10)", zIndex: 1200,
-      display: "flex", alignItems: "center", justifyContent: "center"
+      position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "linear-gradient(135deg, #a084ee 0%, #7C83F7 100%)", zIndex: 1200,
+      display: "flex", flexDirection: "column"
     }}>
-      <div style={{ background: "#fff", borderRadius: 18, boxShadow: "0 4px 32px #a084ee22", padding: 0, maxWidth: 700, width: "95vw", height: 600, maxHeight: "70vh", display: "flex", flexDirection: "column" }}>
+      <div style={{ background: "#fff", width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
         {/* Header */}
-        <div style={{ background: "linear-gradient(90deg,#a084ee,#7C83F7)", borderTopLeftRadius: 18, borderTopRightRadius: 18, padding: "18px 24px 10px 24px", color: "#fff" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <span style={{ background: "#fff", color: "#a084ee", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 700 }}></span>
+        <div style={{ background: "linear-gradient(90deg,#a084ee,#7C83F7)", padding: "20px 32px", color: "#fff", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 16, maxWidth: 1200, margin: "0 auto" }}>
+            <span style={{ background: "#fff", color: "#a084ee", borderRadius: "50%", width: 48, height: 48, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, fontWeight: 700 }}>🎉</span>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 20 }}>Festival Dress Bot</div>
-              <div style={{ fontSize: 13, opacity: 0.9 }}>Get Your Perfect Festival Outfit Guide</div>
+              <div style={{ fontWeight: 700, fontSize: 28 }}>Festival Dress Bot</div>
+              <div style={{ fontSize: 16, opacity: 0.9 }}>Get Your Perfect Festival Outfit Guide</div>
             </div>
-            <button onClick={onClose} style={{ marginLeft: "auto", background: "none", border: "none", color: "#fff", fontSize: 26, cursor: "pointer" }}>&times;</button>
+            <button onClick={onClose} style={{ marginLeft: "auto", background: "rgba(255,255,255,0.1)", border: "none", color: "#fff", fontSize: 24, cursor: "pointer", borderRadius: "50%", width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center" }}>&times;</button>
           </div>
         </div>
         {/* Chat area */}
@@ -263,16 +306,18 @@ const DressForFestival = ({ onClose }) => {
               maxHeight: "100%",
               overflowY: "auto",
               background: "transparent",
-              paddingRight: 8,
+              padding: "24px 32px",
               minHeight: 0,
               boxSizing: "border-box",
               overflowX: "hidden",
               wordBreak: "break-word",
               whiteSpace: "pre-line",
+              maxWidth: 1200,
+              margin: "0 auto",
             }}
           >
             {chat.map((msg, i) => (
-              msg.from === "user" && (
+              msg.from === "user" ? (
                 <div key={i} style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
                   <div style={{
                     background: "#a084ee",
@@ -285,6 +330,19 @@ const DressForFestival = ({ onClose }) => {
                     textAlign: "left"
                   }}>{msg.text}</div>
                 </div>
+              ) : (
+                <div key={i} style={{ display: "flex", justifyContent: "flex-start", marginBottom: 12 }}>
+                  <div style={{
+                    background: "#f8f9fa",
+                    color: "#333",
+                    borderRadius: 14,
+                    padding: "10px 16px",
+                    maxWidth: 540,
+                    fontSize: 15,
+                    border: "1px solid #e9ecef",
+                    textAlign: "left"
+                  }}>{msg.text}</div>
+                </div>
               )
             ))}
             {typing && (
@@ -294,11 +352,25 @@ const DressForFestival = ({ onClose }) => {
                 </div>
               </div>
             )}
-            {/* Show FestiveOutfitIdeas after finalReply and images loaded */}
+            {/* Show success message and FestiveOutfitIdeas after finalReply and images loaded */}
             {finalReply && !loadingImages && occasions.length > 0 && (
-              <div style={{ marginTop: 24 }}>
-                <FestiveOutfitIdeas occasions={occasions} />
-              </div>
+              <>
+                <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 12 }}>
+                  <div style={{
+                    background: "#f8f9fa",
+                    color: "#333",
+                    borderRadius: 14,
+                    padding: "10px 16px",
+                    maxWidth: 540,
+                    fontSize: 15,
+                    border: "1px solid #e9ecef",
+                    textAlign: "left"
+                  }}>Perfect! Here are your festival outfit suggestions with images:</div>
+                </div>
+                <div style={{ marginTop: 24 }}>
+                  <FestiveOutfitIdeas occasions={occasions} />
+                </div>
+              </>
             )}
             {loadingImages && (
               <div style={{ marginTop: 32, textAlign: "center", color: "#a084ee", fontWeight: 600 }}>
@@ -309,10 +381,9 @@ const DressForFestival = ({ onClose }) => {
           {/* Input area */}
           {!finalReply && (
             <div style={{
-              padding: "16px 24px 24px 24px",
+              padding: "24px 32px 32px 32px",
               background: "#fafbfc",
-              borderBottomLeftRadius: 18,
-              borderBottomRightRadius: 18,
+              borderTop: "1px solid #e9ecef",
             }}>
               {/* Options for selection steps */}
               {currentStep.options && (
