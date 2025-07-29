@@ -205,12 +205,6 @@ function App() {
               <button className='btn btn-outlined btn-icon' onClick={() => setShowUndertoneModal(true)}>
                 <span role="img" aria-label="palette">🎨</span> Know About Your Undertone
               </button>
-              <button className='btn btn-outlined btn-icon' onClick={() => setShowFashionTimeline(true)}>
-                <span role="img" aria-label="timeline">📅</span> Get Your Fashion Timeline
-              </button>
-              <button className='btn btn-outlined btn-icon' onClick={() => setShowDressForFestival(true)}>
-                <span role="img" aria-label="festival">🎉</span> Dress for Festival
-              </button>
             </div>
           </div>
           <SeasonTypes />

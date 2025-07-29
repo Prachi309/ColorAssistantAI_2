@@ -44,8 +44,28 @@ const steps = [
 const sleep = ms => new Promise(res => setTimeout(res, ms));
 
 const buildPrompt = (answers) => {
+  let genderWarning = '';
+  let forbidden = '';
+  if (answers.gender && answers.gender.toLowerCase() === 'male') {
+    genderWarning = 'Do NOT mention or suggest sarees, lehengas, skirts, dresses, or any female clothing. Only suggest clothing for men.';
+    forbidden = 'saree|lehenga|skirt|dress|anarkali|chaniya choli|women|female|blouse|dupatta|kurti|gown|salwar|churidar|sharara|kaftan|tunic|crop top|palazzo|stiletto|bangle|jhumka|earring|clutch|potli|anklet|nose ring|maang tikka';
+  } else if (answers.gender && answers.gender.toLowerCase() === 'female') {
+    genderWarning = 'Do NOT mention or suggest sherwanis, kurtas, dhotis, pajamas, or any male clothing. Only suggest clothing for women.';
+    forbidden = 'sherwani|kurta|dhoti|pajama|men|male|blazer|waistcoat|bandhgala|pathani|jodhpuri|mundu|veshti|lungi|brogue|loafer|mojaris (for men)|turban|pagdi|stole (for men)|cufflink|tie|pocket square';
+  } else {
+    genderWarning = 'Only suggest clothing appropriate for the specified gender.';
+    forbidden = '';
+  }
+  // Add a random nonce to break any cache
+  const nonce = Math.random().toString(36).substring(2, 10);
   return `
-Create a detailed festival outfit guide for ${answers.festival_name} celebration in ${answers.location}.
+NONCE: ${nonce}
+WARNING: You must follow these instructions exactly.
+- ALL outfit suggestions MUST be for a ${answers.gender} celebrating ${answers.festival_name} in ${answers.location} ONLY.
+- ${genderWarning}
+- Forbidden: ${forbidden}
+- Do NOT provide suggestions for any other gender, festival, or location. Gender, festival, and location are the foremost priority for all suggestions.
+- If you mention any clothing for the wrong gender, your answer will be rejected.
 
 User Details:
 - Festival: ${answers.festival_name}
@@ -53,26 +73,22 @@ User Details:
 - Gender: ${answers.gender}
 - Body Type: ${answers.body_type}
 
-Please provide specific outfit recommendations in this exact format:
+Please provide specific outfit recommendations for a ${answers.gender} celebrating ${answers.festival_name} in ${answers.location} in this exact format:
 
-**Traditional Outfits:**
-- Anarkali Suit: [specific description with colors and style details]
-- Lehenga/Chaniya Choli: [specific description with colors and style details]
-- Saree: [specific description with colors and style details]
+**Traditional Outfits for a ${answers.gender} celebrating ${answers.festival_name} in ${answers.location}:**
+- [Traditional outfit 1 for a ${answers.gender}]: [specific description with colors and style details. ${genderWarning} Forbidden: ${forbidden}]
+- [Traditional outfit 2 for a ${answers.gender}]: [specific description with colors and style details. ${genderWarning} Forbidden: ${forbidden}]
 
-**Modern Outfits:**
-- Palazzo Suit: [specific description with colors and style details]
-- Indo-Western Dress: [specific description with colors and style details]
-- Fusion Wear: [specific description with colors and style details]
+**Modern Outfits for a ${answers.gender} celebrating ${answers.festival_name} in ${answers.location}:**
+- [Modern outfit 1 for a ${answers.gender}]: [specific description with colors and style details. ${genderWarning} Forbidden: ${forbidden}]
+- [Modern outfit 2 for a ${answers.gender}]: [specific description with colors and style details. ${genderWarning} Forbidden: ${forbidden}]
 
-**Accessories:**
-- Jewelry: [specific jewelry recommendations]
-- Footwear: [specific footwear recommendations]
-- Bags: [specific bag recommendations]
+**Accessories for a ${answers.gender} celebrating ${answers.festival_name} in ${answers.location}:**
+- Jewelry: [specific jewelry recommendations for a ${answers.gender}. ${genderWarning} Forbidden: ${forbidden}]
+- Footwear: [specific footwear recommendations for a ${answers.gender}. ${genderWarning} Forbidden: ${forbidden}]
+- Bags: [specific bag recommendations for a ${answers.gender}. ${genderWarning} Forbidden: ${forbidden}]
 
-Please be very specific with outfit names and descriptions so we can search for relevant images. Include actual garment names like "Anarkali", "Lehenga", "Saree", "Palazzo", etc.
-
-Focus on Indian festivals and cultural appropriateness.
+Please be very specific with outfit names and descriptions so we can search for relevant images. Include actual garment names like "Anarkali", "Kurta", "Sherwani", "Lehenga", "Saree", "Palazzo", etc. Focus on Indian festivals and cultural appropriateness for a ${answers.gender} celebrating ${answers.festival_name} in ${answers.location}.
 `;
 };
 
@@ -129,7 +145,7 @@ async function fetchOutfitImages(query) {
       return [];
     }
     
-    const data = await res.json();
+  const data = await res.json();
     console.log("SerpAPI response:", data);
     
     if (data.error) {
@@ -149,6 +165,19 @@ async function fetchOutfitImages(query) {
   }
 }
 
+// Add post-processing to filter out forbidden clothing lines
+function filterForbiddenLines(aiText, gender) {
+  let forbidden = '';
+  if (gender && gender.toLowerCase() === 'male') {
+    forbidden = /saree|lehenga|skirt|dress|anarkali|chaniya choli|women|female|blouse|dupatta|kurti|gown|salwar|churidar|sharara|kaftan|tunic|crop top|palazzo|stiletto|bangle|jhumka|earring|clutch|potli|anklet|nose ring|maang tikka/i;
+  } else if (gender && gender.toLowerCase() === 'female') {
+    forbidden = /sherwani|kurta|dhoti|pajama|men|male|blazer|waistcoat|bandhgala|pathani|jodhpuri|mundu|veshti|lungi|brogue|loafer|mojaris (for men)|turban|pagdi|stole (for men)|cufflink|tie|pocket square/i;
+  } else {
+    return aiText;
+  }
+  return aiText.split('\n').filter(line => !forbidden.test(line)).join('\n');
+}
+
 const DressForFestival = ({ onClose }) => {
   const [chat, setChat] = useState([
     { from: "bot", text: steps[0].bot }
@@ -166,7 +195,8 @@ const DressForFestival = ({ onClose }) => {
     setTyping(true);
     await sleep(700);
     setTyping(false);
-    setAnswers(prev => ({ ...prev, [steps[step].key]: option.value || option }));
+    const updatedAnswers = { ...answers, [steps[step].key]: option.value || option };
+    setAnswers(updatedAnswers);
     if (step < steps.length - 1) {
       setChat(prev => [...prev, { from: "bot", text: steps[step + 1].bot }]);
       setStep(step + 1);
@@ -175,7 +205,7 @@ const DressForFestival = ({ onClose }) => {
       setTimeout(async () => {
         setTyping(false);
         try {
-          const prompt = buildPrompt(answers);
+          const prompt = buildPrompt(updatedAnswers);
           const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
             method: "POST",
             headers: {
@@ -189,7 +219,7 @@ const DressForFestival = ({ onClose }) => {
           });
           const data = await response.json();
           const suggestion = data.choices?.[0]?.message?.content || "No festival guide received.";
-          setFinalReply(suggestion);
+          setFinalReply(filterForbiddenLines(suggestion, updatedAnswers.gender));
           // Don't add the AI response to chat - keep it hidden
           const days = extractDayWiseOutfits(suggestion);
           // Fetch images for each day
@@ -220,7 +250,8 @@ const DressForFestival = ({ onClose }) => {
     setTyping(true);
     await sleep(700);
     setTyping(false);
-    setAnswers(prev => ({ ...prev, [steps[step].key]: textInput }));
+    const updatedAnswers = { ...answers, [steps[step].key]: textInput };
+    setAnswers(updatedAnswers);
     setTextInput("");
     if (step < steps.length - 1) {
       setChat(prev => [...prev, { from: "bot", text: steps[step + 1].bot }]);
@@ -230,7 +261,7 @@ const DressForFestival = ({ onClose }) => {
       setTimeout(async () => {
         setTyping(false);
         try {
-          const prompt = buildPrompt(answers);
+          const prompt = buildPrompt(updatedAnswers);
           const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
             method: "POST",
             headers: {
@@ -244,7 +275,7 @@ const DressForFestival = ({ onClose }) => {
           });
           const data = await response.json();
           const suggestion = data.choices?.[0]?.message?.content || "No festival guide received.";
-          setFinalReply(suggestion);
+          setFinalReply(filterForbiddenLines(suggestion, updatedAnswers.gender));
           // Don't add the AI response to chat - keep it hidden
           const days = extractDayWiseOutfits(suggestion);
           // Fetch images for each day
@@ -367,9 +398,9 @@ const DressForFestival = ({ onClose }) => {
                     textAlign: "left"
                   }}>Perfect! Here are your festival outfit suggestions with images:</div>
                 </div>
-                <div style={{ marginTop: 24 }}>
-                  <FestiveOutfitIdeas occasions={occasions} />
-                </div>
+              <div style={{ marginTop: 24 }}>
+                <FestiveOutfitIdeas occasions={occasions} />
+              </div>
               </>
             )}
             {loadingImages && (

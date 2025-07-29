@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import "./index.css";
 import ClothingImageResults from "./ClothingImageResults";
 import StyleAssistant from "./StyleAssistant";
+import FashionTimelineBot from "./FashionTimelineBot";
+import DressForFestival from "./DressForFestival";
 // Season brand colors
 const seasonColors = {
   Spring: "#F4B400",
@@ -153,6 +155,8 @@ const AIResponseDisplay = ({ response }) => {
   const seasonColor = seasonColors[season] || "#7b7be5";
   const hasContent = season || why.length || Object.values(palettes).some(p => p && p.length > 0) || clothing.length || Object.keys(makeup).length;
   const [showStyleAssistant, setShowStyleAssistant] = useState(false);
+  const [showFashionTimeline, setShowFashionTimeline] = useState(false);
+  const [showDressForFestival, setShowDressForFestival] = useState(false);
 
   // Extract season and palette colors from response
   let paletteColors = [];
@@ -337,6 +341,198 @@ const AIResponseDisplay = ({ response }) => {
           palette={paletteColors}
         />
       )}
+      {showFashionTimeline && (
+        <FashionTimelineBot
+          onClose={() => {
+            console.log('Closing Fashion Timeline');
+            setShowFashionTimeline(false);
+          }}
+        />
+      )}
+      {showDressForFestival && (
+        <DressForFestival
+          onClose={() => {
+            console.log('Closing Festival Dress');
+            setShowDressForFestival(false);
+          }}
+        />
+      )}
+
+      {/* Advertisement Section */}
+      <div style={{
+        background: "#fff",
+        borderRadius: "12px",
+        padding: "24px",
+        marginTop: "32px",
+        border: "1px solid #e9ecef",
+        textAlign: "center"
+      }}>
+        <div style={{
+          color: "#6c757d",
+          fontSize: "14px",
+          fontWeight: "600",
+          marginBottom: "16px",
+          textTransform: "uppercase",
+          letterSpacing: "1px"
+        }}>
+          Advertisement
+        </div>
+        <div style={{
+          background: "#f8f9fa",
+          borderRadius: "8px",
+          padding: "20px",
+          border: "2px dashed #dee2e6",
+          position: "relative",
+          overflow: "hidden",
+          height: "90px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center"
+        }}>
+          {/* Single Ad Card Container */}
+          <div style={{
+            position: "relative",
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center"
+          }}>
+            {/* Fashion Timeline Ad */}
+            <div
+              id="fashion-timeline-ad"
+              onClick={() => {
+                console.log('Fashion Timeline Ad clicked');
+                setShowFashionTimeline(true);
+              }}
+              style={{
+                background: "linear-gradient(135deg, #a084ee 0%, #7C83F7 100%)",
+                borderRadius: "12px",
+                padding: "20px 32px",
+                display: "flex",
+                alignItems: "center",
+                gap: "16px",
+                cursor: "pointer",
+                boxShadow: "0 6px 20px rgba(160, 132, 238, 0.4)",
+                border: "3px solid #fff",
+                width: "90%",
+                maxWidth: "600px",
+                height: "70px",
+                transition: "all 0.3s ease",
+                animation: "fadeInOut 3s linear infinite",
+                position: "absolute",
+                opacity: 0,
+                zIndex: 1
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = "translateY(-3px) scale(1.02)";
+                e.target.style.boxShadow = "0 8px 25px rgba(160, 132, 238, 0.5)";
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = "translateY(0) scale(1)";
+                e.target.style.boxShadow = "0 6px 20px rgba(160, 132, 238, 0.4)";
+              }}
+            >
+              <span style={{ fontSize: "32px", filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))" }}>🗼</span>
+              <div>
+                <div style={{ 
+                  color: "#fff", 
+                  fontWeight: "800", 
+                  fontSize: "20px",
+                  letterSpacing: "0.5px",
+                  textShadow: "0 2px 4px rgba(0,0,0,0.3)",
+                  marginBottom: "4px"
+                }}>
+                  Get Your Fashion Timeline
+                </div>
+                <div style={{ 
+                  color: "rgba(255,255,255,0.95)", 
+                  fontSize: "14px",
+                  fontWeight: "600"
+                }}>
+                  Personalized outfit suggestions
+                </div>
+              </div>
+            </div>
+
+            {/* Festival Dress Ad */}
+            <div
+              id="festival-dress-ad"
+              onClick={() => {
+                console.log('Festival Dress Ad clicked');
+                setShowDressForFestival(true);
+              }}
+              style={{
+                background: "linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%)",
+                borderRadius: "12px",
+                padding: "20px 32px",
+                display: "flex",
+                alignItems: "center",
+                gap: "16px",
+                cursor: "pointer",
+                boxShadow: "0 6px 20px rgba(255, 107, 107, 0.4)",
+                border: "3px solid #fff",
+                width: "90%",
+                maxWidth: "600px",
+                height: "70px",
+                transition: "all 0.3s ease",
+                animation: "fadeInOut 3s linear infinite 1.5s",
+                position: "absolute",
+                opacity: 0,
+                zIndex: 2
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = "translateY(-3px) scale(1.02)";
+                e.target.style.boxShadow = "0 8px 25px rgba(255, 107, 107, 0.5)";
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = "translateY(0) scale(1)";
+                e.target.style.boxShadow = "0 6px 20px rgba(255, 107, 107, 0.4)";
+              }}
+            >
+              <span style={{ fontSize: "32px", filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))" }}>🎉</span>
+              <div>
+                <div style={{ 
+                  color: "#fff", 
+                  fontWeight: "800", 
+                  fontSize: "20px",
+                  letterSpacing: "0.5px",
+                  textShadow: "0 2px 4px rgba(0,0,0,0.3)",
+                  marginBottom: "4px"
+                }}>
+                  Dress for Festival
+                </div>
+                <div style={{ 
+                  color: "rgba(255,255,255,0.95)", 
+                  fontSize: "14px",
+                  fontWeight: "600"
+                }}>
+                  Stand out with festival-ready outfits
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style={{
+          color: "#6c757d",
+          fontSize: "12px",
+          marginTop: "16px",
+          fontStyle: "italic"
+        }}>
+          Sponsored content helps keep ColorCraft free for everyone
+        </div>
+
+        {/* CSS Animation for Carousel */}
+        <style>
+          {`
+                          @keyframes fadeInOut {
+                0%, 45% { opacity: 1; z-index: 10; }
+                50%, 95% { opacity: 0; z-index: 1; }
+                100% { opacity: 1; z-index: 10; }
+              }
+          `}
+        </style>
+      </div>
     </div>
   );
 };
